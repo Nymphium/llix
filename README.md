@@ -28,8 +28,11 @@ Error
 >
 ```
 ## installation
-- `$ luarocks install --local llix`
-- ```
+`$ luarocks install --local llix`
+
+or
+
+```
 $ git clone https://github.com/Nymphium/llix
 $ cd llix
 $ luarocks install --local make
@@ -47,4 +50,3 @@ grep -E '\b(TODO)|(XXX)\b' *
 ```
 ## License
 [MIT License](http://opensource.org/licenses/mit-license.php)
-
