@@ -1,7 +1,7 @@
 package = "llix"
 version = "v0.1-1"
 source = {
-	url = "https://github.com/nymphium/llix"
+	url = "git://github.com/nymphium/llix"
 }
 description = {
 	summary = "llix, Lightweight Lua Interpreter eXtended",
@@ -17,11 +17,12 @@ dependencies = {
 	"linenoise"
 }
 build = {
-	type = "builtin",
+	type = "command",
+	build_command = "moonc -o llix_eval.lua llix/eval.moon; moonc -o llix_parse.lua llix/parse.moon",
 	install = {
 		lua = {
-			"llix/parse.moon",
-			"llix/eval.moon"
+			"llix_eval.lua",
+			"llix_parse.lua"
 		},
 		bin = {"bin/llix"}
 	}
