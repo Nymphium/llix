@@ -1,4 +1,6 @@
 # llix - Lightweight Lua Interpreter eXtended
+`/ˈliɹ.ɪks/`
+
 ## concept
 llix is Lua interpreter, added the ***try-catch*** syntax.
 ```Lua
