@@ -1,0 +1,130 @@
+#!/usr/bin/env moon
+
+-- getopt = require'alt_getopt'
+parse = require"llix.parse"
+eval = require"llix.eval"
+
+lazy_gc_stop = (...) =>
+	collectgarbage "stop"
+	with {@ ...}
+		collectgarbage "restart"
+
+-- read file and run
+if fn = arg[1]
+	fileread = (fl) ->
+		fh = assert io.open fl
+		with fh\read '*a'
+			fh\close!
+
+	t, err = parse "do #{fileread fn} end"
+	unless t then error "#{err} #{fn}"
+
+	cont = lazy_gc_stop pcall, eval, t
+	if cont[1] == false then error cont[2]
+
+	os.exit!
+
+L = require'linenoise'
+inspect = require'inspect'
+iprint = (...) -> print (inspect {...})\match("^{ (.*) }$")
+import remove, insert, concat from table
+
+-- add cadidates for completion
+candidates = (line, env) ->
+	i1 = line\find '[.\\%w_]+$'
+
+	unless i1 then return
+
+	front = line\sub 1, i1 - 1
+	partial = line\sub i1
+	with res = {}
+		prefix, last = partial\match '(.-)([^.\\]*)$'
+
+		if #prefix > 0 then for w in prefix\sub(1, -2)\gmatch '[^.\\]+'
+			env = env[w]
+			unless env then return
+
+		prefix = front .. prefix
+		append_candidates = (env) ->
+			for k in pairs env do if (last == '') or k\sub(1, #last) == last
+				insert(res, prefix..k)
+
+		if type(env) == 'table' then append_candidates env
+
+		with mt = getmetatable env do if mt and type(.__index) == 'table'
+			append_candidates .__index
+
+vars = {}
+completion_handler = (env) -> (c, s) ->
+	if cc = candidates s, env
+		for name in *cc do L.addcompletion c, name
+	for k in *vars
+		L.addcompletion c, k
+
+-- parse and eval
+parseval = (obj) ->
+	collectgarbage "stop"
+
+	if type(obj) == "table"
+		ok, cont = pcall eval, obj
+		if ok
+			not obj.quiet and iprint cont._llix_tmp
+			eval parse"_llix_tmp = nil"
+		else print"failed to parse"
+	else
+		tree = parse obj
+		ok, cont = pcall eval, tree
+
+		unless ok then print cont
+		else
+			if tree[1].label == "varlist" then vars = tree[1][1]
+	
+	collectgarbage "restart"
+
+---- repl body
+histfile = os.getenv"HOME" .. "/.llix_history"
+block = {}
+prompt =
+	p: ">"
+	deepen: => @p = @p\rep 2
+	reset: => @p = ">"
+
+get_line = ->
+	with line = L.linenoise prompt.p .. " "
+		if line and line\match '%S' then L.historyadd line
+
+L.setcompletion completion_handler(_G)
+
+io.write "llix - Lightweight Lua Interpreter eXtended ",
+	"(MoonScript version #{(require 'moonscript.version').version}",
+	" on #{_VERSION})\n\n"
+
+unless L.historyload histfile
+	io.stderr\write "failed to load commandline history\n"
+
+while true
+	line = get_line!
+
+	if not line then break
+	elseif #line < 1 then continue
+
+	if t = parse line
+		t.quiet = true
+		parseval t
+	elseif tt = parse "_llix_tmp = #{line}"
+		parseval tt
+	else
+		prompt\deepen!
+		insert block, line
+
+		while line and #line > 0
+			line = get_line!
+			insert block, line
+
+		prompt\reset!
+		parseval concat block, '\n'
+		block = {}
+
+unless L.historysave histfile
+	io.stderr\write "failed to save commandline history\n"
+
