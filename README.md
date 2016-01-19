@@ -37,7 +37,7 @@ or
 ```
 $ git clone https://github.com/Nymphium/llix
 $ cd llix
-$ luarocks install --local make
+$ luarocks install --local make llix-build-1.rockspec
 ```
 
 ## requirement

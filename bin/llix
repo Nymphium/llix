@@ -1,8 +1,8 @@
 #!/usr/bin/env moon
 
 -- getopt = require'alt_getopt'
-parse = require"llix_parse"
-eval = require"llix_eval"
+parse = require"llix.parse"
+eval = require"llix.eval"
 
 lazy_gc_stop = (...) =>
 	collectgarbage "stop"

@@ -1,5 +1,5 @@
 package = "llix"
-version = "v0.1-1"
+version = "build-1"
 source = {
 	url = "git://github.com/nymphium/llix"
 }
@@ -9,13 +9,14 @@ description = {
 	homepage = "https://github.com/nymphium/llix",
 	license = "MIT"
 }
-dependencies = {
-	"lua >= 5.3",
-	"moonscript",
-	"inspect",
-	"lpeg",
-	"linenoise"
-}
+dependencies = {}
 build = {
-	type = "make",
+   type = "builtin",
+   modules = {
+      ["llix.eval"] = "llix/eval.lua",
+      ["llix.parse"] = "llix/parse.lua"
+   },
+   install = {
+      bin = {"bin/llix"}
+   }
 }
