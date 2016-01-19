@@ -6,7 +6,8 @@ LLIX = llix
 
 install: compile
 	@echo '--install'
-	cp $(LLIX)/*.lua $(LUA_PATH_MAKE)/$(LLIX)/
+	mkdir -p $(LUA_PATH_MAKE)$(LLIX)
+	cp $(LLIX)/*.lua $(LUA_PATH_MAKE)$(LLIX)
 	cp bin/llix  $(LUA_BIN_MAKE)/
 
 compile:
