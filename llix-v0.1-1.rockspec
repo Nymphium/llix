@@ -18,4 +18,6 @@ dependencies = {
 }
 build = {
 	type = "make",
+	build_variables = {},
+	install_variables = {}
 }
