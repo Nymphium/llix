@@ -11,7 +11,7 @@ description = {
 }
 dependencies = {
 	"lua >= 5.3",
-	"moonscript",
+	"moonscript >= 0.4",
 	"inspect",
 	"lpeg",
 	"linenoise"
