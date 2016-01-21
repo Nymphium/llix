@@ -309,10 +309,12 @@ eval_return = (body, ret = {}, env, k0, k) ->
 -- eval_varlist {a, b, c, ...}, {"a", "b", "c", ..}, regtbl,...
 -- ==> regtbl = a: evaled_a, b: evaled_b, c: evaled_c
 eval_varlist = (left, right = ["" for _ = 1, #left], regtbl, env, k0, k) ->
-	f = (t) -> for i = 1, #left
-		if rawget env, left[i] -- actually the element in env or not
-			env[left[i]] = t[i]
-		else regtbl[left[i]] = t[i]
+	f = (t) ->
+		-- XXX: left to eval like this: t.x = n
+		for i = 1, #left
+			if rawget env, left[i] -- actually the element in env or not
+				env[left[i]] = t[i]
+			else regtbl[left[i]] = t[i]
 
 	k if not right[2] and is_funcall regtbl[1]
 		eval_funcall right[1][1], right[1][2], env, k0, f
