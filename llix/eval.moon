@@ -309,16 +309,36 @@ eval_return = (body, ret = {}, env, k0, k) ->
 -- eval_varlist {a, b, c, ...}, {"a", "b", "c", ..}, regtbl,...
 -- ==> regtbl = a: evaled_a, b: evaled_b, c: evaled_c
 eval_varlist = (left, right = ["" for _ = 1, #left], regtbl, env, k0, k) ->
-	f = (t) ->
-		-- XXX: left to eval like this: t.x = n
-		for i = 1, #left
-			if rawget env, left[i] -- actually the element in env or not
-				env[left[i]] = t[i]
-			else regtbl[left[i]] = t[i]
+	f = (t) -> eval_varself left, env, k0, (varnames) ->
+		for i = 1, #varnames do switch type varnames[i]
+			when "string"
+				if (env != regtbl) and rawget env, varnames[i]
+					env[varnames[i]] = t[i]
+				else regtbl[varnames[i]] = t[i]
+			when "table" then varnames[i][1][varnames[i][2]] = t[i]
 
 	k if not right[2] and is_funcall regtbl[1]
 		eval_funcall right[1][1], right[1][2], env, k0, f
 	else eval_args right, env, k0, f
+
+-- {{"t", "1", label: "tableaccess"}, "k", ...} ==> {{{}, 1}, "k", ...}
+eval_varself = (varnames, env, k0, k) ->
+	unless varnames[1] then k varnames
+	else
+		var = remove varnames, 1
+		switch type var
+			when "string"
+				eval_varself varnames, env, k0, (v) ->
+					k insert v, 1, var
+			when "table" then switch var.label
+				when "tableaccess" then expand_tbl var, true, env, k0, (t, key) ->
+					eval_varself varnames, env, k0, (v) ->
+						eval_exp key, env, k0, (ke) ->
+							k insert v, 1, {t, ke}
+				else eval_varself varnames, env, k0, (v) ->
+					k insert v, 1, var
+			else eval_varself varnames, env, k0, (v) ->
+				k insert v, 1, var
 
 -- k0 ... table(excep(try-catch), loop(while/for/repeat))
 eval_body = (body, env, k0, k) -> switch body.label
