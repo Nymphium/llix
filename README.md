@@ -12,6 +12,19 @@ catch
 	io.stderr:write "Error\n"
 end
 ```
+
+### --[[*New*]] type annotation
+You can annotate type of variable:
+```Lua
+-- in comment, `T@ <varname> :: <type>`
+local num = 3 -- T@ num :: number
+
+-- yes, you fail
+local notstr = 0 -- T@ notstr :: string
+```
+
+only allowed to annotate monomorphic type and can't do about functions' return value.
+
 ## usage
 ```
 $ llix

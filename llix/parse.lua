@@ -41,6 +41,14 @@ local ast
 ast = function(pat)
   return (pat) ^ 0
 end
+local foldmap
+foldmap = function(self, f, val)
+  for _index_0 = 1, #self do
+    local i = self[_index_0]
+    val = f(val, i)
+  end
+  return val
+end
 local spaces
 spaces = function(head, ...)
   local args = {
@@ -150,13 +158,32 @@ gen_tblaccess = function(a, ...)
     gen_tblaccess(...)
   }
 end
+local parse
 local llix = P({
   opt(P('#') * ast(1 - P('\n')) * P('\n')) * V('Space') * CtV('Chunk') * V('Space') * -P(1),
   Keywords = keywords('and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while', 'try', 'catch'),
   Chunk = ast(V('Space') * V('Stat') * opt(V('Space') * P(';'))) * opt(V('Space') * V('Laststat') * opt(V('Space') * P(';'))),
   Block = V('Chunk'),
   Space = ast(locale.space + V('Comment')),
-  Comment = (P('--') * V('Longstring') + P('--') * ast(P(1) - P('\n')) * (P('\n') + -P(1))) / function() end,
+  Comment = (P('--') * V('Longstring') + P('--') * V('Space') * (V('TACore') + ast(P(1) - (P('\n') + P('T@')))) * (P('\n') + -P(1))),
+  TACore = (function()
+    do
+      local types = {
+        "number",
+        "string",
+        "table",
+        "function",
+        "coroutine",
+        "userdata",
+        "nil"
+      }
+      return spaces(P('T@'), CV('Name'), P('::'), C(foldmap(types, (function(self, x)
+        return P(x) + self
+      end), #(-P('.'))))) / function(n, t)
+        return (parse("assert((type(" .. tostring(n) .. ") == \"" .. tostring(t) .. "\"), [[`" .. tostring(n) .. "' is not \"" .. tostring(t) .. "\"]])"))[1]
+      end
+    end
+  end)(),
   Number = P('0x') * (locale.xdigit) ^ 1 * -(locale.alnum + P('_')) + locale.digit ^ 1 * opt(P('.') * locale.digit ^ 1) * opt(S('eE') * locale.digit ^ 1) * -(locale.alnum + P('_')) + P('.') * locale.digit ^ 1 * opt(S('eE') * locale.digit ^ 1) * -(locale.alnum + P('_')),
   Longstring = C(P({
     V('open') * C(ast(P(1) - V('closeeq'))) * V('close') / 2,
@@ -218,7 +245,7 @@ local llix = P({
   fieldlist = V('Field') * ast(V('Space') * V('Fieldsep') * V('Space') * V('Field')) * opt(V('Space') * V('Fieldsep')),
   Field = Ct(spaces(P('['), CtV('Exp'), P(']'), P('='), V('Exp'))) + Ct(spaces(CV('Name'), P('='), V('Exp'))) + V('Exp')
 })
-return function(msg)
+parse = function(msg)
   local tree = {
     llix:match(msg)
   }
@@ -231,3 +258,4 @@ return function(msg)
     end
   end
 end
+return parse

@@ -196,7 +196,7 @@ do
   __ENV._ENV = __ENV
   __ENV.package.loaded = __ENV
 end
-local expand_tbl, eval_tbl, eval_exp, eval_funcdef, eval_args, eval_funcall, eval_return, eval_varlist, eval_body, kinit, eval
+local expand_tbl, eval_tbl, eval_exp, eval_funcdef, eval_args, eval_funcall, eval_return, eval_varlist, eval_varself, eval_body, kinit, eval
 expand_tbl = function(tbl, is_dec, env, k0, k)
   if type_t(tbl[2]) then
     local _exp_0 = tbl[2].label
@@ -588,13 +588,20 @@ eval_varlist = function(left, right, regtbl, env, k0, k)
   end
   local f
   f = function(t)
-    for i = 1, #left do
-      if rawget(env, left[i]) then
-        env[left[i]] = t[i]
-      else
-        regtbl[left[i]] = t[i]
+    return eval_varself(left, env, k0, function(varnames)
+      for i = 1, #varnames do
+        local _exp_0 = type(varnames[i])
+        if "string" == _exp_0 then
+          if (env ~= regtbl) and rawget(env, varnames[i]) then
+            env[varnames[i]] = t[i]
+          else
+            regtbl[varnames[i]] = t[i]
+          end
+        elseif "table" == _exp_0 then
+          varnames[i][1][varnames[i][2]] = t[i]
+        end
       end
-    end
+    end)
   end
   return k((function()
     if not right[2] and is_funcall(regtbl[1]) then
@@ -603,6 +610,41 @@ eval_varlist = function(left, right, regtbl, env, k0, k)
       return eval_args(right, env, k0, f)
     end
   end)())
+end
+eval_varself = function(varnames, env, k0, k)
+  if not (varnames[1]) then
+    return k(varnames)
+  else
+    local var = remove(varnames, 1)
+    local _exp_0 = type(var)
+    if "string" == _exp_0 then
+      return eval_varself(varnames, env, k0, function(v)
+        return k(insert(v, 1, var))
+      end)
+    elseif "table" == _exp_0 then
+      local _exp_1 = var.label
+      if "tableaccess" == _exp_1 then
+        return expand_tbl(var, true, env, k0, function(t, key)
+          return eval_varself(varnames, env, k0, function(v)
+            return eval_exp(key, env, k0, function(ke)
+              return k(insert(v, 1, {
+                t,
+                ke
+              }))
+            end)
+          end)
+        end)
+      else
+        return eval_varself(varnames, env, k0, function(v)
+          return k(insert(v, 1, var))
+        end)
+      end
+    else
+      return eval_varself(varnames, env, k0, function(v)
+        return k(insert(v, 1, var))
+      end)
+    end
+  end
 end
 eval_body = function(body, env, k0, k)
   local _exp_0 = body.label

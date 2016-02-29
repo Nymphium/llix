@@ -13,11 +13,31 @@ CtV = (pat) -> Ct V pat
 opt = (pat) -> (pat)^-1
 ast = (pat) -> (pat)^0
 
+foldmap = (f, val) =>
+	for i in *@ do val = f val, i
+	val
+
+-- head = => @[1]
+
+-- tail = =>
+	-- if #@ < 1 then nil
+	-- else with ret = {}
+		-- i = 2
+		-- while i <= #@
+			-- insert ret, i - 1, @[i]
+			-- i += 1
+
+-- reduce = (f) => foldmap tail(@), f, head(@)
+
 -- spaces(a, b, c, ..., z) ==> a * V'Space' * b * V'Space' * c * ... * V'Space' * z
 spaces = (head, ...) ->
 	args = {...}
 
 	not args[1] and head or head * V'Space' * spaces unpack args
+
+-- spaces = (...) -> reduce {...}, (t) => @ * V'Space' * t
+
+-- keywords = (...) -> reduce {...}, (t) => K(@) * t
 
 keywords = (head, ...) ->
 	args = {...}
@@ -70,18 +90,7 @@ gen_exp = (next, pat) -> V(next) * ast(V'Space' * pat * V'Space' * V(next)) / ge
 
 gen_tblaccess = (a, ...) -> #{...} < 1 and a or {label: "tableaccess", (type(a) == "string" and a\gsub("\"", "") or a), gen_tblaccess ...}
 
--- parse(Funcbody) ==> {....}, {....}, {....} constantly make three tables
--- normalize_funcbody = (...) ->
-	-- body = {...}
-	-- args = remove body, 1
-	-- cont = remove body
-
-	-- if cont.label == "return"
-		-- args, body, cont
-	-- else
-		-- insert(body, cont)
-		-- args, body
-
+local parse
 
 llix = P{
 	opt(P'#' * ast(1 - P'\n') * P'\n') * V'Space' * CtV'Chunk' * V'Space' * -P(1)
@@ -93,7 +102,12 @@ llix = P{
 	Space: ast(locale.space + V'Comment')
 	Comment:
 		(P'--' * V'Longstring' +
-		P'--' * ast(P(1) - P'\n') * (P'\n' + -P(1))) /->
+		P'--' * V'Space' * (V'TACore' + ast(P(1) - (P'\n' + P'T@'))) * (P'\n' + -P(1)))
+
+	TACore:
+		with types = {"number", "string", "table", "function", "coroutine", "userdata", "nil"}
+			return spaces(P'T@', CV'Name', P'::', C foldmap types, ((x) => P(x) + @), #(-P'.')) / (n, t) ->
+				(parse"assert((type(#{n}) == \"#{t}\"), [[`#{n}' is not \"#{t}\"]])")[1]
 
 	Number:
 		P'0x' * (locale.xdigit)^1 * -(locale.alnum + P'_') +
@@ -187,10 +201,11 @@ llix = P{
 		Ct(spaces(CV'Name', P'=', V'Exp')) + V'Exp'
 }
 
-(msg) ->
+parse = (msg) ->
 	tree = {llix\match msg}
 
 	if h = tree[1]
 		#tree > 1 and tree or h
 	else nil, "Failed to parse"
 
+parse
