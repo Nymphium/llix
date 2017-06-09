@@ -192,6 +192,7 @@ eval_exp = (exp, env, k0, k) -> switch type(exp)
 		when "funcall" then eval_funcall exp[1], exp[2], env, k0, (t) -> k (remove t, 1)
 		when "annonymousfuncdef" then eval_funcdef exp, env, k0, k
 		when "tableaccess" then k ({expand_tbl exp, _, env, k0, noop})[1]
+		when "callcc" then eval_callcc exp, env, k0, k
 		when "exp"
 			import op from exp
 
@@ -305,6 +306,16 @@ eval_return = (body, ret = {}, env, k0, k) ->
 				eval_return body, ret, env, k0, k
 		else eval_exp head, env, k0, (x) -> eval_return body, insert(ret, x), env, k0, k
 
+eval_callcc = (body, env, k0, k) ->
+	env.__current_continuation = k
+	eval body[1], env, k0, (e) ->
+		k_ = with ke = e.__current_continuation
+			if ke then e.__current_continuation = nil
+
+		for k, v in pairs e do env[k] = v if env[k]
+
+		if k_ then k_!
+
 -- bind one of the element in right corresponding to the name in the left to regtbl
 -- eval_varlist {a, b, c, ...}, {"a", "b", "c", ..}, regtbl,...
 -- ==> regtbl = a: evaled_a, b: evaled_b, c: evaled_c
@@ -349,8 +360,12 @@ eval_body = (body, env, k0, k) -> switch body.label
 				eval body.catchbody, env, k0, noop
 		k eval body.body, env, k1, (e) ->
 			for k, v in pairs e do env[k] = v if env[k]
-	when "do" then k eval body, (cp_tbl env), k0, (e) ->
-		for k, v in pairs e do env[k] = v if env[k]
+	when "do" then k eval body, (cp_tbl env), k0, (e) -> for k, v in pairs e do env[k] = v if env[k]
+	when "callcc" then eval_callcc body, env, k0, k
+	when "continue"
+		ke = env.__current_continuation
+		env.__current_continuation = nil
+		eval_funcall ke, {body[1]}, env, k0, (e) -> for k, v in pairs e do env[k] = v if env[k]
 	when "return" then eval_return body, _, env, k0, k
 	when "break" then k0.loop!
 	when "varlist" then eval_varlist body[1], body[2], __ENV, env, k0, k

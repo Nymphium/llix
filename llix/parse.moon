@@ -33,7 +33,7 @@ foldmap = (f, val) =>
 spaces = (head, ...) ->
 	args = {...}
 
-	not args[1] and head or head * V'Space' * spaces unpack args
+	not args[1] and head or head * V'Space' * spaces table.unpack args
 
 -- spaces = (...) -> reduce {...}, (t) => @ * V'Space' * t
 
@@ -42,7 +42,7 @@ spaces = (head, ...) ->
 keywords = (head, ...) ->
 	args = {...}
 
-	not args[1] and K(head) or K(head) + keywords unpack args
+	not args[1] and K(head) or K(head) + keywords table.unpack args
 
 -- lbl_tbl(lbl, l1, l2, l3, ..., ln) (c1, c2, c3, ..., cn, cn+1, ...) ==> {label: lbl, l1: c1, l2: c2, ..., ln:cn, cn+1, cn+2, ...}
 lbl_tbl = (lbl, ...) ->
@@ -64,7 +64,7 @@ gen_nesttbl = (...) ->
 			if args[1]
 				insert(args[#args][1], tail)
 
-				return gen_nesttbl unpack args
+				return gen_nesttbl table.unpack args
 
 	t = gn ...
 
@@ -84,7 +84,7 @@ gen_unoptbl = (...) ->
 
 	insert args, t
 
-	#args < 2 and (t.op and t or val) or gen_unoptbl unpack args
+	#args < 2 and (t.op and t or val) or gen_unoptbl table.unpack args
 
 gen_exp = (next, pat) -> V(next) * ast(V'Space' * pat * V'Space' * V(next)) / gen_binoptbl
 
@@ -95,7 +95,9 @@ local parse
 llix = P{
 	opt(P'#' * ast(1 - P'\n') * P'\n') * V'Space' * CtV'Chunk' * V'Space' * -P(1)
 	Keywords: keywords 'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
-		'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while', 'try', 'catch'
+		'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while',
+		'try', 'catch',
+		'callcc', 'continue'
 
 	Chunk: ast(V'Space' * V'Stat' * opt(V'Space' * P';')) * opt(V'Space' * V'Laststat' * opt(V'Space' * P';'))
 	Block: V'Chunk'
@@ -142,6 +144,8 @@ llix = P{
 		K'local' * V'Space' * CtV'Namelist' * opt(V'Space' * P'=' * V'Space' * CtV'Explist') / lbl_tbl'localvarlist' +
 		spaces(CtV'Varlist', P'=', CtV'Explist') / lbl_tbl'varlist' +
 		V'Funcall' +
+		V'Callcc' +
+		spaces(K'continue', V'Exp') / lbl_tbl'continue' +
 		spaces(K'try', CtV'Block', K'catch', CtV'Block', K'end') / lbl_tbl('try', 'body', 'catchbody')
 
 	Laststat: K'return' * (opt(V'Space' * V'Explist')) / lbl_tbl'return' + K'break' / -> label:'break'
@@ -155,6 +159,7 @@ llix = P{
 		V'String' +
 		CP'...' +
 		V'Funcdef' +
+		V'Callcc' +
 		V'Tableconstructor' +
 		V'Funcall' +
 		V'Var' +
@@ -192,6 +197,7 @@ llix = P{
 
 	Funcdef: K'function' * V'Space' * V'Funcbody' * V'Space' * K'end' / lbl_tbl('annonymousfuncdef', 'args', 'body')
 	Funcbody: spaces P'(', (opt(V'Parlist') / lbl_tbl'args'), P')', CtV'Block'
+	Callcc: spaces(K'callcc', CtV'Block', P'end') / lbl_tbl 'callcc'
 
 	Parlist: (V'Namelist' * opt(V'Space' * P',' * V'Space' * CP'...') + CP'...')
 	Tableconstructor: P'{' * V'Space' * (opt(V'fieldlist' * V'Space') / lbl_tbl'constructor') * P'}'
