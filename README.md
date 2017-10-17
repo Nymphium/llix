@@ -13,7 +13,7 @@ catch
 end
 ```
 
-### --[[*New*]] type annotation
+### type annotation
 You can annotate type of variable:
 ```Lua
 -- in comment, `T@ <varname> :: <type>`
@@ -24,6 +24,20 @@ local notstr = 0 -- T@ notstr :: string
 ```
 
 only allowed to annotate monomorphic type and can't do about functions' return value.
+
+### call/cc
+```lua
+local t = {1, 2, 3, 4, 5}
+local x = callcc
+    for i = 1, #t do
+        if t[i] > 3 then
+            continue t[i]
+        end
+    end
+end
+
+print(x) -- prints `4' !!!
+```
 
 ## usage
 ```
