@@ -25,10 +25,10 @@ local notstr = 0 -- T@ notstr :: string
 
 only allowed to annotate monomorphic type and can't do about functions' return value.
 
-### call/cc
+### delimited continuation
 ```lua
 local t = {1, 2, 3, 4, 5}
-local x = callcc
+local x = delim
     for i = 1, #t do
         if t[i] > 3 then
             continue t[i]

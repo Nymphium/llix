@@ -196,7 +196,7 @@ do
   __ENV._ENV = __ENV
   __ENV.package.loaded = __ENV
 end
-local expand_tbl, eval_tbl, eval_exp, eval_funcdef, eval_args, eval_funcall, eval_return, eval_callcc, eval_varlist, eval_varself, eval_body, kinit, eval
+local expand_tbl, eval_tbl, eval_exp, eval_funcdef, eval_args, eval_funcall, eval_return, eval_delim, eval_varlist, eval_varself, eval_body, kinit, eval
 expand_tbl = function(tbl, is_dec, env, k0, k)
   if type_t(tbl[2]) then
     local _exp_0 = tbl[2].label
@@ -380,8 +380,8 @@ eval_exp = function(exp, env, k0, k)
       return k(({
         expand_tbl(exp, _, env, k0, noop)
       })[1])
-    elseif "callcc" == _exp_1 then
-      return eval_callcc(exp, env, k0, k)
+    elseif "delim" == _exp_1 then
+      return eval_delim(exp, env, k0, k)
     elseif "exp" == _exp_1 then
       local op
       op = exp.op
@@ -576,7 +576,7 @@ eval_return = function(body, ret, env, k0, k)
     end
   end
 end
-eval_callcc = function(body, env, k0, k)
+eval_delim = function(body, env, k0, k)
   env.__current_continuation = k
   return eval(body[1], env, k0, function(e)
     local k_
@@ -696,8 +696,8 @@ eval_body = function(body, env, k0, k)
         end
       end
     end))
-  elseif "callcc" == _exp_0 then
-    return eval_callcc(body, env, k0, k)
+  elseif "delim" == _exp_0 then
+    return eval_delim(body, env, k0, k)
   elseif "continue" == _exp_0 then
     local ke = env.__current_continuation
     env.__current_continuation = nil

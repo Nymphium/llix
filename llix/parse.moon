@@ -97,7 +97,7 @@ llix = P{
 	Keywords: keywords 'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
 		'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while',
 		'try', 'catch',
-		'callcc', 'continue'
+		'delim', 'continue'
 
 	Chunk: ast(V'Space' * V'Stat' * opt(V'Space' * P';')) * opt(V'Space' * V'Laststat' * opt(V'Space' * P';'))
 	Block: V'Chunk'
@@ -144,7 +144,7 @@ llix = P{
 		K'local' * V'Space' * CtV'Namelist' * opt(V'Space' * P'=' * V'Space' * CtV'Explist') / lbl_tbl'localvarlist' +
 		spaces(CtV'Varlist', P'=', CtV'Explist') / lbl_tbl'varlist' +
 		V'Funcall' +
-		V'Callcc' +
+		V'Delim' +
 		spaces(K'continue', V'Exp') / lbl_tbl'continue' +
 		spaces(K'try', CtV'Block', K'catch', CtV'Block', K'end') / lbl_tbl('try', 'body', 'catchbody')
 
@@ -159,7 +159,7 @@ llix = P{
 		V'String' +
 		CP'...' +
 		V'Funcdef' +
-		V'Callcc' +
+		V'Delim' +
 		V'Tableconstructor' +
 		V'Funcall' +
 		V'Var' +
@@ -197,7 +197,7 @@ llix = P{
 
 	Funcdef: K'function' * V'Space' * V'Funcbody' * V'Space' * K'end' / lbl_tbl('annonymousfuncdef', 'args', 'body')
 	Funcbody: spaces P'(', (opt(V'Parlist') / lbl_tbl'args'), P')', CtV'Block'
-	Callcc: spaces(K'callcc', CtV'Block', P'end') / lbl_tbl 'callcc'
+	Delim: spaces(K'delim', CtV'Block', P'end') / lbl_tbl 'delim'
 
 	Parlist: (V'Namelist' * opt(V'Space' * P',' * V'Space' * CP'...') + CP'...')
 	Tableconstructor: P'{' * V'Space' * (opt(V'fieldlist' * V'Space') / lbl_tbl'constructor') * P'}'

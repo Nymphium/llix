@@ -161,7 +161,7 @@ end
 local parse
 local llix = P({
   opt(P('#') * ast(1 - P('\n')) * P('\n')) * V('Space') * CtV('Chunk') * V('Space') * -P(1),
-  Keywords = keywords('and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while', 'try', 'catch', 'callcc', 'continue'),
+  Keywords = keywords('and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while', 'try', 'catch', 'delim', 'continue'),
   Chunk = ast(V('Space') * V('Stat') * opt(V('Space') * P(';'))) * opt(V('Space') * V('Laststat') * opt(V('Space') * P(';'))),
   Block = V('Chunk'),
   Space = ast(locale.space + V('Comment')),
@@ -204,7 +204,7 @@ local llix = P({
     return e
   end) / gen_nesttbl), K('end')) / lbl_tbl('if', 'cond', 'body', 'elsebody') + spaces(K('for'), CV('Name'), P('='), V('Exp'), P(','), V('Exp')) * spaces(opt(V('Space') * P(',') * V('Space') * V('Exp')) / (function(e)
     return e
-  end), K('do'), CtV('Block'), K('end')) / lbl_tbl('for', 'var', 'cnt', 'to', 'step', 'body') + spaces(K('for'), CtV('Namelist'), K('in'), CtV('Explist'), K('do'), CtV('Block'), K('end')) / lbl_tbl('iter', 'namelist', 'explist', 'body') + spaces(K('function'), V('Funcname'), V('Funcbody'), K('end')) / lbl_tbl('funcdef', 'name', 'args', 'body') + spaces(K('local'), K('function'), CV('Name'), V('Funcbody'), K('end')) / lbl_tbl('localfuncdef', 'name', 'args', 'body') + K('local') * V('Space') * CtV('Namelist') * opt(V('Space') * P('=') * V('Space') * CtV('Explist')) / lbl_tbl('localvarlist') + spaces(CtV('Varlist'), P('='), CtV('Explist')) / lbl_tbl('varlist') + V('Funcall') + V('Callcc') + spaces(K('continue'), V('Exp')) / lbl_tbl('continue') + spaces(K('try'), CtV('Block'), K('catch'), CtV('Block'), K('end')) / lbl_tbl('try', 'body', 'catchbody'),
+  end), K('do'), CtV('Block'), K('end')) / lbl_tbl('for', 'var', 'cnt', 'to', 'step', 'body') + spaces(K('for'), CtV('Namelist'), K('in'), CtV('Explist'), K('do'), CtV('Block'), K('end')) / lbl_tbl('iter', 'namelist', 'explist', 'body') + spaces(K('function'), V('Funcname'), V('Funcbody'), K('end')) / lbl_tbl('funcdef', 'name', 'args', 'body') + spaces(K('local'), K('function'), CV('Name'), V('Funcbody'), K('end')) / lbl_tbl('localfuncdef', 'name', 'args', 'body') + K('local') * V('Space') * CtV('Namelist') * opt(V('Space') * P('=') * V('Space') * CtV('Explist')) / lbl_tbl('localvarlist') + spaces(CtV('Varlist'), P('='), CtV('Explist')) / lbl_tbl('varlist') + V('Funcall') + V('Delim') + spaces(K('continue'), V('Exp')) / lbl_tbl('continue') + spaces(K('try'), CtV('Block'), K('catch'), CtV('Block'), K('end')) / lbl_tbl('try', 'body', 'catchbody'),
   Laststat = K('return') * (opt(V('Space') * V('Explist'))) / lbl_tbl('return') + K('break') / function()
     return {
       label = 'break'
@@ -212,7 +212,7 @@ local llix = P({
   end,
   Namelist = CV('Name') * ast(V('Space') * P(',') * V('Space') * CV('Name')),
   Varlist = V('Var') * ast(V('Space') * P(',') * V('Space') * V('Var')),
-  Value = CK('nil') + CK('false') + CK('true') + CV('Number') + V('String') + CP('...') + V('Funcdef') + V('Callcc') + V('Tableconstructor') + V('Funcall') + V('Var') + spaces(P('('), V('Exp'), P(')')),
+  Value = CK('nil') + CK('false') + CK('true') + CV('Number') + V('String') + CP('...') + V('Funcdef') + V('Delim') + V('Tableconstructor') + V('Funcall') + V('Var') + spaces(P('('), V('Exp'), P(')')),
   Exp = V('lor'),
   lor = gen_exp('land', CK('or')),
   land = gen_exp('cmp', CK('and')),
@@ -240,7 +240,7 @@ local llix = P({
   Callargs = Ct(P('(') * V('Space') * opt(V('Explist') * V('Space')) * P(')') + (V('Tableconstructor') + V('String'))),
   Funcdef = K('function') * V('Space') * V('Funcbody') * V('Space') * K('end') / lbl_tbl('annonymousfuncdef', 'args', 'body'),
   Funcbody = spaces(P('('), (opt(V('Parlist')) / lbl_tbl('args')), P(')'), CtV('Block')),
-  Callcc = spaces(K('callcc'), CtV('Block'), P('end')) / lbl_tbl('callcc'),
+  Delim = spaces(K('delim'), CtV('Block'), P('end')) / lbl_tbl('delim'),
   Parlist = (V('Namelist') * opt(V('Space') * P(',') * V('Space') * CP('...')) + CP('...')),
   Tableconstructor = P('{') * V('Space') * (opt(V('fieldlist') * V('Space')) / lbl_tbl('constructor')) * P('}'),
   fieldlist = V('Field') * ast(V('Space') * V('Fieldsep') * V('Space') * V('Field')) * opt(V('Space') * V('Fieldsep')),
